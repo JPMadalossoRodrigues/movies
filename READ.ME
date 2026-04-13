@@ -1,0 +1,180 @@
+# 🎬 Movies API
+
+API para gerenciamento de filmes com autenticação, filtros avançados, upload de imagens e sistema de jobs assíncronos para envio de e-mails.
+
+---
+
+## 📌 Visão Geral
+
+Esta API permite que usuários autenticados:
+
+- Criem, editem, excluam e visualizem filmes  
+- Façam buscas dinâmicas e filtros avançados  
+- Façam upload de imagens  
+- Recebam lembretes de estreia via sistema de jobs assíncronos  
+
+---
+
+## 🧠 Decisões Técnicas
+
+### 🔹 Validação com Zod
+
+A validação é feita exclusivamente na borda da aplicação (controllers) utilizando Zod.
+
+- Garante entrada consistente  
+- Evita duplicação de tipos  
+- Services recebem dados já tratados  
+
+---
+
+### 🔹 Separação de responsabilidades
+
+- **Controller →** validação + fluxo HTTP  
+- **Service →** regra de negócio  
+
+---
+
+### 🔹 Sistema de Jobs (Job Table)
+
+Sistema baseado em banco ao invés de RabbitMQ.
+
+**Motivo:** reduzir complexidade sem perder robustez.
+
+- Execução assíncrona  
+- Retry automático (até 5 tentativas)  
+- Status: `pending`, `processing`, `done`, `failed`  
+
+---
+
+### 🔹 Upload de arquivos
+
+- Cloudflare R2 (S3 compatible)  
+- Retorna apenas URL pública  
+
+---
+
+### 🔹 Filtros
+
+- Busca por título  
+- Gêneros  
+- Duração (mín/max)  
+- Datas  
+
+Todos com **AND**.
+
+---
+
+### 🔹 Trade-offs
+
+- Sem DTOs (Zod já resolve)  
+- Prisma com tipagem flexível  
+- Sem RabbitMQ (overkill)  
+
+---
+
+## 🚀 Como rodar
+
+### 1. Instalar
+
+```bash
+npm install
+```
+
+### 2. .env
+
+Baseado no `.env.example`
+
+### 3. Banco
+
+```bash
+docker-compose up -d
+```
+
+### 4. Migrations
+
+```bash
+npx prisma migrate dev --name init
+```
+
+### 5. Rodar
+
+```bash
+npm run dev
+```
+
+---
+
+## 🔐 Auth
+
+JWT via header:
+
+```
+Authorization: Bearer <token>
+```
+
+---
+
+## 📦 Endpoints
+
+### Auth
+- POST /auth/register  
+- POST /auth/login  
+
+### Movies
+- GET /movies  
+- POST /movies  
+- GET /movies/:id  
+- PUT /movies/:id  
+- DELETE /movies/:id  
+
+### Upload
+- POST /upload  
+
+---
+
+## 🔍 Exemplo de filtro
+
+```
+/movies?page=1&search=batman&genres=action,drama&minDuration=90
+```
+
+---
+
+## ⚙️ Jobs
+
+- Roda a cada 5s  
+- Processa pendentes  
+- Retry automático  
+
+---
+
+## 🧪 Melhorias
+
+- RabbitMQ  
+- Testes  
+- Observabilidade  
+- Melhor tipagem  
+
+---
+
+## 📁 Estrutura
+
+```
+src/
+ ├── config/
+ ├── database/
+ ├── middlewares/
+ ├── modules/
+ │    ├── auth/
+ │    ├── movies/
+ │    ├── upload/
+ │    └── job/
+ ├── errors/
+ └── server.ts
+```
+
+---
+
+## 🧠 Final
+
+Foco em simplicidade, clareza e decisões conscientes de trade-off.
